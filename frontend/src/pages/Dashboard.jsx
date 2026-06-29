@@ -3,12 +3,23 @@ import { supabase } from '../supabaseClient'
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
+  const [totalLeads, setTotalLeads] = useState(0)
+  const [hotLeads, setHotLeads] = useState(0)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user)
     })
+    fetchStats()
   }, [])
+
+  const fetchStats = async () => {
+    const { data } = await supabase.from('leads').select('*')
+    if (data) {
+      setTotalLeads(data.length)
+      setHotLeads(data.filter(l => l.status === 'Hot').length)
+    }
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -37,11 +48,11 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-6 rounded-xl shadow text-center">
             <p className="text-gray-500 text-sm">Total Leads</p>
-            <p className="text-4xl font-bold text-blue-800 mt-2">0</p>
+            <p className="text-4xl font-bold text-blue-800 mt-2">{totalLeads}</p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow text-center">
             <p className="text-gray-500 text-sm">Hot Leads</p>
-            <p className="text-4xl font-bold text-red-500 mt-2">0</p>
+            <p className="text-4xl font-bold text-red-500 mt-2">{hotLeads}</p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow text-center">
             <p className="text-gray-500 text-sm">Deals Won</p>
@@ -55,10 +66,10 @@ export default function Dashboard() {
 
         {/* Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-xl shadow hover:shadow-md cursor-pointer">
+          <a href="/leads" className="bg-white p-6 rounded-xl shadow hover:shadow-md cursor-pointer block">
             <h3 className="text-lg font-bold text-blue-800 mb-2">📋 Leads</h3>
             <p className="text-gray-500 text-sm">Manage all your leads</p>
-          </div>
+          </a>
           <div className="bg-white p-6 rounded-xl shadow hover:shadow-md cursor-pointer">
             <h3 className="text-lg font-bold text-blue-800 mb-2">💼 Deals</h3>
             <p className="text-gray-500 text-sm">Track your sales pipeline</p>
