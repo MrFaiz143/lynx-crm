@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import Sidebar from '../components/Sidebar'
 
 export default function Leads() {
   const [leads, setLeads] = useState([])
@@ -40,16 +41,10 @@ export default function Leads() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Navbar */}
-      <div className="bg-blue-800 text-white px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Lynx Soft. CRM</h1>
-        <a href="/dashboard" className="bg-white text-blue-800 px-4 py-1 rounded-lg text-sm font-semibold">
-          Dashboard
-        </a>
-      </div>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
+      <Sidebar active="Leads" />
 
-      <div className="p-6">
+      <div className="flex-1 p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-700">Leads</h2>
           <button
@@ -157,7 +152,7 @@ export default function Leads() {
         )}
 
         {/* Leads Table */}
-        <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="bg-white rounded-xl shadow overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-blue-800 text-white">
               <tr>
