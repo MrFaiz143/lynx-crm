@@ -6,6 +6,7 @@ export default function Leads() {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({
     name: '', phone: '', email: '', source: '', status: 'New', notes: ''
   })
@@ -19,25 +20,65 @@ export default function Leads() {
     setLeads(data || [])
   }
 
+  const resetForm = () => {
+    setForm({ name: '', phone: '', email: '', source: '', status: 'New', notes: '' })
+    setEditingId(null)
+    setShowForm(false)
+  }
+
   const handleSubmit = async () => {
     if (!form.name || !form.phone) {
       alert('Name aur Phone zaruri hai!')
       return
     }
     setLoading(true)
-    const { error } = await supabase.from('leads').insert([{
-      ...form,
-      created_at: new Date().toISOString()
-    }])
+
+    if (editingId) {
+      const { error } = await supabase.from('leads').update(form).eq('id', editingId)
+      if (error) {
+        alert('Error: ' + error.message)
+      } else {
+        alert('Lead update ho gaya! ✅')
+        resetForm()
+        fetchLeads()
+      }
+    } else {
+      const { error } = await supabase.from('leads').insert([{
+        ...form,
+        created_at: new Date().toISOString()
+      }])
+      if (error) {
+        alert('Error: ' + error.message)
+      } else {
+        alert('Lead successfully add hua! ✅')
+        resetForm()
+        fetchLeads()
+      }
+    }
+    setLoading(false)
+  }
+
+  const handleEdit = (lead) => {
+    setForm({
+      name: lead.name || '',
+      phone: lead.phone || '',
+      email: lead.email || '',
+      source: lead.source || '',
+      status: lead.status || 'New',
+      notes: lead.notes || ''
+    })
+    setEditingId(lead.id)
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Kya tum is lead ko delete karna chahte ho?')) return
+    const { error } = await supabase.from('leads').delete().eq('id', id)
     if (error) {
       alert('Error: ' + error.message)
     } else {
-      alert('Lead successfully add hua! ✅')
-      setForm({ name: '', phone: '', email: '', source: '', status: 'New', notes: '' })
-      setShowForm(false)
       fetchLeads()
     }
-    setLoading(false)
   }
 
   return (
@@ -48,17 +89,16 @@ export default function Leads() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-700">Leads</h2>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => { resetForm(); setShowForm(!showForm) }}
             className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900"
           >
             + Add Lead
           </button>
         </div>
 
-        {/* Add Lead Form */}
         {showForm && (
           <div className="bg-white p-6 rounded-xl shadow mb-6">
-            <h3 className="text-lg font-bold text-gray-700 mb-4">New Lead</h3>
+            <h3 className="text-lg font-bold text-gray-700 mb-4">{editingId ? 'Edit Lead' : 'New Lead'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Name *</label>
@@ -139,10 +179,10 @@ export default function Leads() {
                 disabled={loading}
                 className="bg-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-900"
               >
-                {loading ? 'Saving...' : 'Save Lead'}
+                {loading ? 'Saving...' : (editingId ? 'Update Lead' : 'Save Lead')}
               </button>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300"
               >
                 Cancel
@@ -151,7 +191,6 @@ export default function Leads() {
           </div>
         )}
 
-        {/* Leads Table */}
         <div className="bg-white rounded-xl shadow overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-blue-800 text-white">
@@ -161,12 +200,13 @@ export default function Leads() {
                 <th className="px-4 py-3 text-left">Source</th>
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Notes</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
               {leads.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan="6" className="px-4 py-8 text-center text-gray-400">
                     Koi lead nahi hai — Add Lead button se add karo!
                   </td>
                 </tr>
@@ -188,6 +228,22 @@ export default function Leads() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{lead.notes}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(lead)}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(lead.id)}
+                          className="text-red-600 hover:text-red-800 text-xs font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}

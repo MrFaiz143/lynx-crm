@@ -17,6 +17,7 @@ export default function Deals() {
   const [deals, setDeals] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({
     title: '', contact_name: '', value: '', stage: 'New', notes: ''
   })
@@ -30,26 +31,69 @@ export default function Deals() {
     setDeals(data || [])
   }
 
+  const resetForm = () => {
+    setForm({ title: '', contact_name: '', value: '', stage: 'New', notes: '' })
+    setEditingId(null)
+    setShowForm(false)
+  }
+
   const handleSubmit = async () => {
     if (!form.title || !form.contact_name) {
       alert('Title aur Contact Name zaruri hai!')
       return
     }
     setLoading(true)
-    const { error } = await supabase.from('deals').insert([{
+
+    const payload = {
       ...form,
       value: form.value ? parseFloat(form.value) : 0,
-      created_at: new Date().toISOString()
-    }])
+    }
+
+    if (editingId) {
+      const { error } = await supabase.from('deals').update(payload).eq('id', editingId)
+      if (error) {
+        alert('Error: ' + error.message)
+      } else {
+        alert('Deal update ho gaya! ✅')
+        resetForm()
+        fetchDeals()
+      }
+    } else {
+      const { error } = await supabase.from('deals').insert([{
+        ...payload,
+        created_at: new Date().toISOString()
+      }])
+      if (error) {
+        alert('Error: ' + error.message)
+      } else {
+        alert('Deal successfully add hua! ✅')
+        resetForm()
+        fetchDeals()
+      }
+    }
+    setLoading(false)
+  }
+
+  const handleEdit = (deal) => {
+    setForm({
+      title: deal.title || '',
+      contact_name: deal.contact_name || '',
+      value: deal.value || '',
+      stage: deal.stage || 'New',
+      notes: deal.notes || ''
+    })
+    setEditingId(deal.id)
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Kya tum is deal ko delete karna chahte ho?')) return
+    const { error } = await supabase.from('deals').delete().eq('id', id)
     if (error) {
       alert('Error: ' + error.message)
     } else {
-      alert('Deal successfully add hua! ✅')
-      setForm({ title: '', contact_name: '', value: '', stage: 'New', notes: '' })
-      setShowForm(false)
       fetchDeals()
     }
-    setLoading(false)
   }
 
   const moveStage = async (dealId, newStage) => {
@@ -68,14 +112,13 @@ export default function Deals() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-700">Deals Pipeline</h2>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => { resetForm(); setShowForm(!showForm) }}
             className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900"
           >
             + Add Deal
           </button>
         </div>
 
-        {/* Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl shadow text-center">
             <p className="text-gray-500 text-sm">Total Deals</p>
@@ -91,10 +134,9 @@ export default function Deals() {
           </div>
         </div>
 
-        {/* Add Deal Form */}
         {showForm && (
           <div className="bg-white p-6 rounded-xl shadow mb-6">
-            <h3 className="text-lg font-bold text-gray-700 mb-4">New Deal</h3>
+            <h3 className="text-lg font-bold text-gray-700 mb-4">{editingId ? 'Edit Deal' : 'New Deal'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Deal Title *</label>
@@ -153,10 +195,10 @@ export default function Deals() {
                 disabled={loading}
                 className="bg-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-900"
               >
-                {loading ? 'Saving...' : 'Save Deal'}
+                {loading ? 'Saving...' : (editingId ? 'Update Deal' : 'Save Deal')}
               </button>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300"
               >
                 Cancel
@@ -165,7 +207,6 @@ export default function Deals() {
           </div>
         )}
 
-        {/* Kanban Board */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {STAGES.map(stage => (
             <div key={stage} className="bg-gray-200 rounded-xl p-3 min-h-[200px]">
@@ -185,6 +226,20 @@ export default function Deals() {
                     >
                       {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => handleEdit(deal)}
+                        className="text-blue-600 hover:text-blue-800 text-xs font-semibold"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(deal.id)}
+                        className="text-red-600 hover:text-red-800 text-xs font-semibold"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

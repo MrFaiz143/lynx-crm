@@ -6,6 +6,7 @@ export default function Contacts() {
   const [contacts, setContacts] = useState([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({
     name: '', phone: '', email: '', company: '', address: '', notes: ''
   })
@@ -19,25 +20,65 @@ export default function Contacts() {
     setContacts(data || [])
   }
 
+  const resetForm = () => {
+    setForm({ name: '', phone: '', email: '', company: '', address: '', notes: '' })
+    setEditingId(null)
+    setShowForm(false)
+  }
+
   const handleSubmit = async () => {
     if (!form.name || !form.phone) {
       alert('Name aur Phone zaruri hai!')
       return
     }
     setLoading(true)
-    const { error } = await supabase.from('contacts').insert([{
-      ...form,
-      created_at: new Date().toISOString()
-    }])
+
+    if (editingId) {
+      const { error } = await supabase.from('contacts').update(form).eq('id', editingId)
+      if (error) {
+        alert('Error: ' + error.message)
+      } else {
+        alert('Contact update ho gaya! ✅')
+        resetForm()
+        fetchContacts()
+      }
+    } else {
+      const { error } = await supabase.from('contacts').insert([{
+        ...form,
+        created_at: new Date().toISOString()
+      }])
+      if (error) {
+        alert('Error: ' + error.message)
+      } else {
+        alert('Contact successfully add hua! ✅')
+        resetForm()
+        fetchContacts()
+      }
+    }
+    setLoading(false)
+  }
+
+  const handleEdit = (contact) => {
+    setForm({
+      name: contact.name || '',
+      phone: contact.phone || '',
+      email: contact.email || '',
+      company: contact.company || '',
+      address: contact.address || '',
+      notes: contact.notes || ''
+    })
+    setEditingId(contact.id)
+    setShowForm(true)
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Kya tum is contact ko delete karna chahte ho?')) return
+    const { error } = await supabase.from('contacts').delete().eq('id', id)
     if (error) {
       alert('Error: ' + error.message)
     } else {
-      alert('Contact successfully add hua! ✅')
-      setForm({ name: '', phone: '', email: '', company: '', address: '', notes: '' })
-      setShowForm(false)
       fetchContacts()
     }
-    setLoading(false)
   }
 
   return (
@@ -48,7 +89,7 @@ export default function Contacts() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-700">Contacts</h2>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => { resetForm(); setShowForm(!showForm) }}
             className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900"
           >
             + Add Contact
@@ -57,7 +98,7 @@ export default function Contacts() {
 
         {showForm && (
           <div className="bg-white p-6 rounded-xl shadow mb-6">
-            <h3 className="text-lg font-bold text-gray-700 mb-4">New Contact</h3>
+            <h3 className="text-lg font-bold text-gray-700 mb-4">{editingId ? 'Edit Contact' : 'New Contact'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Name *</label>
@@ -126,10 +167,10 @@ export default function Contacts() {
                 disabled={loading}
                 className="bg-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-900"
               >
-                {loading ? 'Saving...' : 'Save Contact'}
+                {loading ? 'Saving...' : (editingId ? 'Update Contact' : 'Save Contact')}
               </button>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={resetForm}
                 className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300"
               >
                 Cancel
@@ -147,12 +188,13 @@ export default function Contacts() {
                 <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Company</th>
                 <th className="px-4 py-3 text-left">Notes</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
               {contacts.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan="6" className="px-4 py-8 text-center text-gray-400">
                     Koi contact nahi hai — Add Contact button se add karo!
                   </td>
                 </tr>
@@ -164,6 +206,22 @@ export default function Contacts() {
                     <td className="px-4 py-3">{contact.email}</td>
                     <td className="px-4 py-3">{contact.company}</td>
                     <td className="px-4 py-3 text-gray-500">{contact.notes}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(contact)}
+                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(contact.id)}
+                          className="text-red-600 hover:text-red-800 text-xs font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
