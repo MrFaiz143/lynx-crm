@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
 import Contacts from './pages/Contacts'
+import Deals from './pages/Deals'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -34,6 +35,7 @@ function App() {
         <Route path="/dashboard" element={session ? <Dashboard /> : <Navigate to="/" />} />
         <Route path="/leads" element={session ? <Leads /> : <Navigate to="/" />} />
         <Route path="/contacts" element={session ? <Contacts /> : <Navigate to="/" />} />
+        <Route path="/deals" element={session ? <Deals /> : <Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
   )
