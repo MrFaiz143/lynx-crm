@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
+import Contacts from './pages/Contacts'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -32,6 +33,7 @@ function App() {
         <Route path="/" element={!session ? <Login /> : <Navigate to="/dashboard" />} />
         <Route path="/dashboard" element={session ? <Dashboard /> : <Navigate to="/" />} />
         <Route path="/leads" element={session ? <Leads /> : <Navigate to="/" />} />
+        <Route path="/contacts" element={session ? <Contacts /> : <Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
   )
