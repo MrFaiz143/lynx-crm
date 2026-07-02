@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import Sidebar from '../components/Sidebar'
+import * as XLSX from 'xlsx'
 
 export default function Leads() {
   const [leads, setLeads] = useState([])
@@ -32,68 +33,88 @@ export default function Leads() {
       return
     }
     setLoading(true)
-
     if (editingId) {
       const { error } = await supabase.from('leads').update(form).eq('id', editingId)
-      if (error) {
-        alert('Error: ' + error.message)
-      } else {
-        alert('Lead update ho gaya! ✅')
-        resetForm()
-        fetchLeads()
-      }
+      if (error) { alert('Error: ' + error.message) }
+      else { alert('Lead update ho gaya! ✅'); resetForm(); fetchLeads() }
     } else {
-      const { error } = await supabase.from('leads').insert([{
-        ...form,
-        created_at: new Date().toISOString()
-      }])
-      if (error) {
-        alert('Error: ' + error.message)
-      } else {
-        alert('Lead successfully add hua! ✅')
-        resetForm()
-        fetchLeads()
-      }
+      const { error } = await supabase.from('leads').insert([{ ...form, created_at: new Date().toISOString() }])
+      if (error) { alert('Error: ' + error.message) }
+      else { alert('Lead add hua! ✅'); resetForm(); fetchLeads() }
     }
     setLoading(false)
   }
 
   const handleEdit = (lead) => {
-    setForm({
-      name: lead.name || '',
-      phone: lead.phone || '',
-      email: lead.email || '',
-      source: lead.source || '',
-      status: lead.status || 'New',
-      notes: lead.notes || ''
-    })
+    setForm({ name: lead.name || '', phone: lead.phone || '', email: lead.email || '', source: lead.source || '', status: lead.status || 'New', notes: lead.notes || '' })
     setEditingId(lead.id)
     setShowForm(true)
   }
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Kya tum is lead ko delete karna chahte ho?')) return
-    const { error } = await supabase.from('leads').delete().eq('id', id)
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      fetchLeads()
+    if (!window.confirm('Delete karna chahte ho?')) return
+    await supabase.from('leads').delete().eq('id', id)
+    fetchLeads()
+  }
+
+  // Export to Excel
+  const handleExport = () => {
+    const exportData = leads.map(l => ({
+      Name: l.name, Phone: l.phone, Email: l.email,
+      Source: l.source, Status: l.status, Notes: l.notes,
+      'Created At': l.created_at
+    }))
+    const ws = XLSX.utils.json_to_sheet(exportData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads')
+    XLSX.writeFile(wb, 'Leads.xlsx')
+  }
+
+  // Import from Excel/CSV
+  const handleImport = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = async (evt) => {
+      const wb = XLSX.read(evt.target.result, { type: 'binary' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const data = XLSX.utils.sheet_to_json(ws)
+      const toInsert = data.map(row => ({
+        name: row['Name'] || row['name'] || '',
+        phone: row['Phone'] || row['phone'] || '',
+        email: row['Email'] || row['email'] || '',
+        source: row['Source'] || row['source'] || '',
+        status: row['Status'] || row['status'] || 'New',
+        notes: row['Notes'] || row['notes'] || '',
+        created_at: new Date().toISOString()
+      })).filter(r => r.name && r.phone)
+      if (toInsert.length === 0) { alert('Koi valid data nahi mila!'); return }
+      const { error } = await supabase.from('leads').insert(toInsert)
+      if (error) { alert('Import error: ' + error.message) }
+      else { alert(toInsert.length + ' leads import ho gaye! ✅'); fetchLeads() }
     }
+    reader.readAsBinaryString(file)
+    e.target.value = ''
   }
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
       <Sidebar active="Leads" />
-
       <div className="flex-1 p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-700">Leads</h2>
-          <button
-            onClick={() => { resetForm(); setShowForm(!showForm) }}
-            className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900"
-          >
-            + Add Lead
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">
+              Export Excel
+            </button>
+            <label className="bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-600 text-sm cursor-pointer">
+              Import Excel
+              <input type="file" accept=".xlsx,.csv" onChange={handleImport} className="hidden" />
+            </label>
+            <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900 text-sm">
+              + Add Lead
+            </button>
+          </div>
         </div>
 
         {showForm && (
@@ -102,41 +123,19 @@ export default function Leads() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Name *</label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Customer name"
-                  value={form.name}
-                  onChange={(e) => setForm({...form, name: e.target.value})}
-                />
+                <input type="text" className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Customer name" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} />
               </div>
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Phone *</label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Mobile number"
-                  value={form.phone}
-                  onChange={(e) => setForm({...form, phone: e.target.value})}
-                />
+                <input type="text" className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Mobile number" value={form.phone} onChange={(e) => setForm({...form, phone: e.target.value})} />
               </div>
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Email</label>
-                <input
-                  type="email"
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Email address"
-                  value={form.email}
-                  onChange={(e) => setForm({...form, email: e.target.value})}
-                />
+                <input type="email" className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Email address" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} />
               </div>
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Source</label>
-                <select
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.source}
-                  onChange={(e) => setForm({...form, source: e.target.value})}
-                >
+                <select className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" value={form.source} onChange={(e) => setForm({...form, source: e.target.value})}>
                   <option value="">Select Source</option>
                   <option value="Website">Website</option>
                   <option value="WhatsApp">WhatsApp</option>
@@ -149,11 +148,7 @@ export default function Leads() {
               </div>
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Status</label>
-                <select
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={form.status}
-                  onChange={(e) => setForm({...form, status: e.target.value})}
-                >
+                <select className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" value={form.status} onChange={(e) => setForm({...form, status: e.target.value})}>
                   <option value="New">New</option>
                   <option value="Hot">Hot 🔥</option>
                   <option value="Warm">Warm ⭐</option>
@@ -164,29 +159,14 @@ export default function Leads() {
               </div>
               <div>
                 <label className="block text-gray-600 text-sm mb-1">Notes</label>
-                <input
-                  type="text"
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Any notes"
-                  value={form.notes}
-                  onChange={(e) => setForm({...form, notes: e.target.value})}
-                />
+                <input type="text" className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Any notes" value={form.notes} onChange={(e) => setForm({...form, notes: e.target.value})} />
               </div>
             </div>
             <div className="flex gap-3 mt-4">
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="bg-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-900"
-              >
+              <button onClick={handleSubmit} disabled={loading} className="bg-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-900">
                 {loading ? 'Saving...' : (editingId ? 'Update Lead' : 'Save Lead')}
               </button>
-              <button
-                onClick={resetForm}
-                className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300"
-              >
-                Cancel
-              </button>
+              <button onClick={resetForm} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300">Cancel</button>
             </div>
           </div>
         )}
@@ -205,11 +185,7 @@ export default function Leads() {
             </thead>
             <tbody>
               {leads.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-4 py-8 text-center text-gray-400">
-                    Koi lead nahi hai — Add Lead button se add karo!
-                  </td>
-                </tr>
+                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-400">Koi lead nahi — Add Lead se add karo!</td></tr>
               ) : (
                 leads.map((lead, i) => (
                   <tr key={lead.id} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
@@ -217,31 +193,15 @@ export default function Leads() {
                     <td className="px-4 py-3">{lead.phone}</td>
                     <td className="px-4 py-3">{lead.source}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        lead.status === 'Hot' ? 'bg-red-100 text-red-600' :
-                        lead.status === 'Warm' ? 'bg-yellow-100 text-yellow-600' :
-                        lead.status === 'Won' ? 'bg-green-100 text-green-600' :
-                        lead.status === 'Lost' ? 'bg-gray-100 text-gray-600' :
-                        'bg-blue-100 text-blue-600'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${lead.status === 'Hot' ? 'bg-red-100 text-red-600' : lead.status === 'Warm' ? 'bg-yellow-100 text-yellow-600' : lead.status === 'Won' ? 'bg-green-100 text-green-600' : lead.status === 'Lost' ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-600'}`}>
                         {lead.status}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{lead.notes}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEdit(lead)}
-                          className="text-blue-600 hover:text-blue-800 text-xs font-semibold"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(lead.id)}
-                          className="text-red-600 hover:text-red-800 text-xs font-semibold"
-                        >
-                          Delete
-                        </button>
+                        <button onClick={() => handleEdit(lead)} className="text-blue-600 hover:text-blue-800 text-xs font-semibold">Edit</button>
+                        <button onClick={() => handleDelete(lead.id)} className="text-red-600 hover:text-red-800 text-xs font-semibold">Delete</button>
                       </div>
                     </td>
                   </tr>
