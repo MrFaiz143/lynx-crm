@@ -8,6 +8,8 @@ export default function Leads() {
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [search, setSearch] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
   const [form, setForm] = useState({
     name: '', phone: '', email: '', source: '', status: 'New', notes: ''
   })
@@ -57,7 +59,6 @@ export default function Leads() {
     fetchLeads()
   }
 
-  // Export to Excel
   const handleExport = () => {
     const exportData = leads.map(l => ({
       Name: l.name, Phone: l.phone, Email: l.email,
@@ -70,7 +71,6 @@ export default function Leads() {
     XLSX.writeFile(wb, 'Leads.xlsx')
   }
 
-  // Import from Excel/CSV
   const handleImport = (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -97,6 +97,16 @@ export default function Leads() {
     e.target.value = ''
   }
 
+  // Filter leads
+  const filteredLeads = leads.filter(lead => {
+    const matchSearch = search === '' ||
+      lead.name?.toLowerCase().includes(search.toLowerCase()) ||
+      lead.phone?.includes(search) ||
+      lead.email?.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = filterStatus === '' || lead.status === filterStatus
+    return matchSearch && matchStatus
+  })
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
       <Sidebar active="Leads" />
@@ -104,17 +114,45 @@ export default function Leads() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-700">Leads</h2>
           <div className="flex gap-2">
-            <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">
-              Export Excel
-            </button>
+            <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">Export Excel</button>
             <label className="bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-600 text-sm cursor-pointer">
               Import Excel
               <input type="file" accept=".xlsx,.csv" onChange={handleImport} className="hidden" />
             </label>
-            <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900 text-sm">
-              + Add Lead
-            </button>
+            <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900 text-sm">+ Add Lead</button>
           </div>
+        </div>
+
+        {/* Search & Filter */}
+        <div className="bg-white p-4 rounded-xl shadow mb-4 flex gap-3 flex-wrap">
+          <input
+            type="text"
+            placeholder="🔍 Search by name, phone, email..."
+            className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select
+            className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="">All Status</option>
+            <option value="New">New</option>
+            <option value="Hot">Hot 🔥</option>
+            <option value="Warm">Warm ⭐</option>
+            <option value="Cold">Cold ❄️</option>
+            <option value="Won">Won ✅</option>
+            <option value="Lost">Lost ❌</option>
+          </select>
+          {(search || filterStatus) && (
+            <button
+              onClick={() => { setSearch(''); setFilterStatus('') }}
+              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {showForm && (
@@ -172,6 +210,9 @@ export default function Leads() {
         )}
 
         <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <div className="px-4 py-2 text-sm text-gray-500 border-b">
+            {filteredLeads.length} leads found
+          </div>
           <table className="w-full text-sm">
             <thead className="bg-blue-800 text-white">
               <tr>
@@ -184,10 +225,10 @@ export default function Leads() {
               </tr>
             </thead>
             <tbody>
-              {leads.length === 0 ? (
-                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-400">Koi lead nahi — Add Lead se add karo!</td></tr>
+              {filteredLeads.length === 0 ? (
+                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-400">Koi lead nahi mila!</td></tr>
               ) : (
-                leads.map((lead, i) => (
+                filteredLeads.map((lead, i) => (
                   <tr key={lead.id} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                     <td className="px-4 py-3 font-medium">{lead.name}</td>
                     <td className="px-4 py-3">{lead.phone}</td>
