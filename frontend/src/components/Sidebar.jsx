@@ -14,6 +14,7 @@ export default function Sidebar({ active }) {
     { name: 'Leads', icon: '📋', path: '/leads' },
     { name: 'Contacts', icon: '👤', path: '/contacts' },
     { name: 'Deals', icon: '💼', path: '/deals' },
+    { name: 'Activities', icon: '📅', path: '/activities' },
     { name: 'Reports', icon: '📊', path: '/reports' },
   ]
 
@@ -56,6 +57,7 @@ export default function Sidebar({ active }) {
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-blue-200 hover:bg-blue-800 transition"
             >
+              <span className="text-lg">🚪</span>
               <span>Logout</span>
             </button>
           </div>
