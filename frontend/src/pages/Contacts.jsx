@@ -8,6 +8,7 @@ export default function Contacts() {
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [search, setSearch] = useState('')
   const [form, setForm] = useState({
     name: '', phone: '', email: '', company: '', address: '', notes: ''
   })
@@ -95,6 +96,15 @@ export default function Contacts() {
     e.target.value = ''
   }
 
+  // Filter contacts
+  const filteredContacts = contacts.filter(contact => {
+    return search === '' ||
+      contact.name?.toLowerCase().includes(search.toLowerCase()) ||
+      contact.phone?.includes(search) ||
+      contact.email?.toLowerCase().includes(search.toLowerCase()) ||
+      contact.company?.toLowerCase().includes(search.toLowerCase())
+  })
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
       <Sidebar active="Contacts" />
@@ -102,17 +112,32 @@ export default function Contacts() {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-700">Contacts</h2>
           <div className="flex gap-2">
-            <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">
-              Export Excel
-            </button>
+            <button onClick={handleExport} className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 text-sm">Export Excel</button>
             <label className="bg-yellow-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-yellow-600 text-sm cursor-pointer">
               Import Excel
               <input type="file" accept=".xlsx,.csv" onChange={handleImport} className="hidden" />
             </label>
-            <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900 text-sm">
-              + Add Contact
-            </button>
+            <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900 text-sm">+ Add Contact</button>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="bg-white p-4 rounded-xl shadow mb-4 flex gap-3">
+          <input
+            type="text"
+            placeholder="🔍 Search by name, phone, email, company..."
+            className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {showForm && (
@@ -154,6 +179,9 @@ export default function Contacts() {
         )}
 
         <div className="bg-white rounded-xl shadow overflow-x-auto">
+          <div className="px-4 py-2 text-sm text-gray-500 border-b">
+            {filteredContacts.length} contacts found
+          </div>
           <table className="w-full text-sm">
             <thead className="bg-blue-800 text-white">
               <tr>
@@ -166,10 +194,10 @@ export default function Contacts() {
               </tr>
             </thead>
             <tbody>
-              {contacts.length === 0 ? (
-                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-400">Koi contact nahi — Add Contact se add karo!</td></tr>
+              {filteredContacts.length === 0 ? (
+                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-400">Koi contact nahi mila!</td></tr>
               ) : (
-                contacts.map((contact, i) => (
+                filteredContacts.map((contact, i) => (
                   <tr key={contact.id} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                     <td className="px-4 py-3 font-medium">{contact.name}</td>
                     <td className="px-4 py-3">{contact.phone}</td>
