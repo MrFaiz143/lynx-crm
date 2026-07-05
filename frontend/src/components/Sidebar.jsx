@@ -15,6 +15,7 @@ export default function Sidebar({ active }) {
     { name: 'Contacts', icon: '👤', path: '/contacts' },
     { name: 'Deals', icon: '💼', path: '/deals' },
     { name: 'Activities', icon: '📅', path: '/activities' },
+    { name: 'Tasks', icon: '✅', path: '/tasks' },
     { name: 'Reports', icon: '📊', path: '/reports' },
   ]
 

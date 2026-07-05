@@ -7,6 +7,7 @@ import Leads from './pages/Leads'
 import Contacts from './pages/Contacts'
 import Deals from './pages/Deals'
 import Activities from './pages/Activities'
+import Tasks from './pages/Tasks'
 import Reports from './pages/Reports'
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
         <Route path="/contacts" element={session ? <Contacts /> : <Navigate to="/" />} />
         <Route path="/deals" element={session ? <Deals /> : <Navigate to="/" />} />
         <Route path="/activities" element={session ? <Activities /> : <Navigate to="/" />} />
+        <Route path="/tasks" element={session ? <Tasks /> : <Navigate to="/" />} />
         <Route path="/reports" element={session ? <Reports /> : <Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
