@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
 import Contacts from './pages/Contacts'
@@ -35,6 +36,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={!session ? <Login /> : <Navigate to="/dashboard" />} />
+        <Route path="/signup" element={!session ? <Signup /> : <Navigate to="/dashboard" />} />
         <Route path="/dashboard" element={session ? <Dashboard /> : <Navigate to="/" />} />
         <Route path="/leads" element={session ? <Leads /> : <Navigate to="/" />} />
         <Route path="/contacts" element={session ? <Contacts /> : <Navigate to="/" />} />

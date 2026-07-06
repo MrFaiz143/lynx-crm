@@ -11,15 +11,12 @@ export default function Login() {
     setLoading(true)
     setError('')
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ 
-        email: email.trim(), 
-        password: password 
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password
       })
-      console.log('Login result:', data, error)
       if (error) {
         setError(error.message)
-      } else {
-        alert('Login successful! User: ' + data.user.email)
       }
     } catch(err) {
       setError('Something went wrong: ' + err.message)
@@ -64,10 +61,17 @@ export default function Login() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-blue-800 text-white py-2 rounded-lg font-semibold hover:bg-blue-900 transition"
+          className="w-full bg-blue-800 text-white py-2 rounded-lg font-semibold hover:bg-blue-900 transition mb-4"
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
+
+        <p className="text-center text-sm text-gray-500">
+          Naya account banana hai?{' '}
+          <a href="/signup" className="text-blue-800 font-semibold hover:underline">
+            Register karo
+          </a>
+        </p>
       </div>
     </div>
   )
