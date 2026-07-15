@@ -17,7 +17,7 @@ const STATUS_COLORS = {
   'Done': 'bg-green-100 text-green-700',
 }
 
-export default function Tasks() {
+export default function Tasks({ orgId }) {
   const [tasks, setTasks] = useState([])
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(false)
@@ -29,17 +29,26 @@ export default function Tasks() {
   })
 
   useEffect(() => {
-    fetchTasks()
-    fetchLeads()
-  }, [])
+    if (orgId) {
+      fetchTasks()
+      fetchLeads()
+    }
+  }, [orgId])
 
   const fetchTasks = async () => {
-    const { data } = await supabase.from('tasks').select('*').order('due_date', { ascending: true })
+    const { data } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('org_id', orgId)
+      .order('due_date', { ascending: true })
     setTasks(data || [])
   }
 
   const fetchLeads = async () => {
-    const { data } = await supabase.from('leads').select('id, name')
+    const { data } = await supabase
+      .from('leads')
+      .select('id, name')
+      .eq('org_id', orgId)
     setLeads(data || [])
   }
 
@@ -62,6 +71,7 @@ export default function Tasks() {
       priority: form.priority,
       status: form.status,
       notes: form.notes,
+      org_id: orgId,
     }
     if (editingId) {
       const { error } = await supabase.from('tasks').update(payload).eq('id', editingId)
@@ -109,9 +119,7 @@ export default function Tasks() {
     return new Date(due_date) < new Date()
   }
 
-  const filteredTasks = tasks.filter(task => {
-    return filterStatus === '' || task.status === filterStatus
-  })
+  const filteredTasks = tasks.filter(task => filterStatus === '' || task.status === filterStatus)
 
   const pendingCount = tasks.filter(t => t.status === 'Pending').length
   const inProgressCount = tasks.filter(t => t.status === 'In Progress').length
@@ -121,19 +129,12 @@ export default function Tasks() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
       <Sidebar active="Tasks" />
-
       <div className="flex-1 p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-700">Tasks & Follow-ups</h2>
-          <button
-            onClick={() => { resetForm(); setShowForm(!showForm) }}
-            className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900"
-          >
-            + Add Task
-          </button>
+          <button onClick={() => { resetForm(); setShowForm(!showForm) }} className="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-900">+ Add Task</button>
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl shadow text-center">
             <p className="text-gray-500 text-xs">Pending</p>
@@ -153,13 +154,8 @@ export default function Tasks() {
           </div>
         </div>
 
-        {/* Filter */}
         <div className="bg-white p-4 rounded-xl shadow mb-4 flex gap-3">
-          <select
-            className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
+          <select className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="">All Tasks</option>
             <option value="Pending">Pending</option>
             <option value="In Progress">In Progress</option>
@@ -215,7 +211,6 @@ export default function Tasks() {
           </div>
         )}
 
-        {/* Tasks Table */}
         <div className="bg-white rounded-xl shadow overflow-x-auto">
           <div className="px-4 py-2 text-sm text-gray-500 border-b">{filteredTasks.length} tasks</div>
           <table className="w-full text-sm">
@@ -242,16 +237,10 @@ export default function Tasks() {
                     <td className="px-4 py-3 text-gray-500">{getLeadName(task.lead_id)}</td>
                     <td className="px-4 py-3">{task.due_date || '-'}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${PRIORITY_COLORS[task.priority]}`}>
-                        {task.priority}
-                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <select
-                        value={task.status}
-                        onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                        className={`px-2 py-1 rounded-full text-xs font-semibold border-0 ${STATUS_COLORS[task.status]}`}
-                      >
+                      <select value={task.status} onChange={(e) => handleStatusChange(task.id, e.target.value)} className={`px-2 py-1 rounded-full text-xs font-semibold border-0 ${STATUS_COLORS[task.status]}`}>
                         {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </td>

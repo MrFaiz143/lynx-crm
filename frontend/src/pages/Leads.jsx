@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient'
 import Sidebar from '../components/Sidebar'
 import * as XLSX from 'xlsx'
 
-export default function Leads() {
+export default function Leads({ orgId }) {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -15,11 +15,15 @@ export default function Leads() {
   })
 
   useEffect(() => {
-    fetchLeads()
-  }, [])
+    if (orgId) fetchLeads()
+  }, [orgId])
 
   const fetchLeads = async () => {
-    const { data } = await supabase.from('leads').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
     setLeads(data || [])
   }
 
@@ -40,7 +44,11 @@ export default function Leads() {
       if (error) { alert('Error: ' + error.message) }
       else { alert('Lead update ho gaya! ✅'); resetForm(); fetchLeads() }
     } else {
-      const { error } = await supabase.from('leads').insert([{ ...form, created_at: new Date().toISOString() }])
+      const { error } = await supabase.from('leads').insert([{
+        ...form,
+        org_id: orgId,
+        created_at: new Date().toISOString()
+      }])
       if (error) { alert('Error: ' + error.message) }
       else { alert('Lead add hua! ✅'); resetForm(); fetchLeads() }
     }
@@ -86,6 +94,7 @@ export default function Leads() {
         source: row['Source'] || row['source'] || '',
         status: row['Status'] || row['status'] || 'New',
         notes: row['Notes'] || row['notes'] || '',
+        org_id: orgId,
         created_at: new Date().toISOString()
       })).filter(r => r.name && r.phone)
       if (toInsert.length === 0) { alert('Koi valid data nahi mila!'); return }
@@ -97,7 +106,6 @@ export default function Leads() {
     e.target.value = ''
   }
 
-  // Filter leads
   const filteredLeads = leads.filter(lead => {
     const matchSearch = search === '' ||
       lead.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -123,7 +131,6 @@ export default function Leads() {
           </div>
         </div>
 
-        {/* Search & Filter */}
         <div className="bg-white p-4 rounded-xl shadow mb-4 flex gap-3 flex-wrap">
           <input
             type="text"
@@ -146,12 +153,7 @@ export default function Leads() {
             <option value="Lost">Lost ❌</option>
           </select>
           {(search || filterStatus) && (
-            <button
-              onClick={() => { setSearch(''); setFilterStatus('') }}
-              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-300"
-            >
-              Clear
-            </button>
+            <button onClick={() => { setSearch(''); setFilterStatus('') }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm">Clear</button>
           )}
         </div>
 
@@ -210,9 +212,7 @@ export default function Leads() {
         )}
 
         <div className="bg-white rounded-xl shadow overflow-x-auto">
-          <div className="px-4 py-2 text-sm text-gray-500 border-b">
-            {filteredLeads.length} leads found
-          </div>
+          <div className="px-4 py-2 text-sm text-gray-500 border-b">{filteredLeads.length} leads found</div>
           <table className="w-full text-sm">
             <thead className="bg-blue-800 text-white">
               <tr>
@@ -226,7 +226,7 @@ export default function Leads() {
             </thead>
             <tbody>
               {filteredLeads.length === 0 ? (
-                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-400">Koi lead nahi mila!</td></tr>
+                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-400">Koi lead nahi — Add Lead se add karo!</td></tr>
               ) : (
                 filteredLeads.map((lead, i) => (
                   <tr key={lead.id} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>

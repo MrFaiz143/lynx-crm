@@ -13,18 +13,39 @@ import Reports from './pages/Reports'
 
 function App() {
   const [session, setSession] = useState(null)
+  const [orgId, setOrgId] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
-      setLoading(false)
+      if (data.session) {
+        fetchOrgId(data.session.user.id)
+      } else {
+        setLoading(false)
+      }
     })
 
     supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
+      if (session) {
+        fetchOrgId(session.user.id)
+      } else {
+        setOrgId(null)
+        setLoading(false)
+      }
     })
   }, [])
+
+  const fetchOrgId = async (userId) => {
+    const { data } = await supabase
+      .from('org_users')
+      .select('org_id')
+      .eq('user_id', userId)
+      .single()
+    setOrgId(data?.org_id || null)
+    setLoading(false)
+  }
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -37,13 +58,13 @@ function App() {
       <Routes>
         <Route path="/" element={!session ? <Login /> : <Navigate to="/dashboard" />} />
         <Route path="/signup" element={!session ? <Signup /> : <Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={session ? <Dashboard /> : <Navigate to="/" />} />
-        <Route path="/leads" element={session ? <Leads /> : <Navigate to="/" />} />
-        <Route path="/contacts" element={session ? <Contacts /> : <Navigate to="/" />} />
-        <Route path="/deals" element={session ? <Deals /> : <Navigate to="/" />} />
-        <Route path="/activities" element={session ? <Activities /> : <Navigate to="/" />} />
-        <Route path="/tasks" element={session ? <Tasks /> : <Navigate to="/" />} />
-        <Route path="/reports" element={session ? <Reports /> : <Navigate to="/" />} />
+        <Route path="/dashboard" element={session ? <Dashboard orgId={orgId} /> : <Navigate to="/" />} />
+        <Route path="/leads" element={session ? <Leads orgId={orgId} /> : <Navigate to="/" />} />
+        <Route path="/contacts" element={session ? <Contacts orgId={orgId} /> : <Navigate to="/" />} />
+        <Route path="/deals" element={session ? <Deals orgId={orgId} /> : <Navigate to="/" />} />
+        <Route path="/activities" element={session ? <Activities orgId={orgId} /> : <Navigate to="/" />} />
+        <Route path="/tasks" element={session ? <Tasks orgId={orgId} /> : <Navigate to="/" />} />
+        <Route path="/reports" element={session ? <Reports orgId={orgId} /> : <Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
   )

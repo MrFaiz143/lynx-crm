@@ -1,37 +1,28 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
 import Sidebar from '../components/Sidebar'
-import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  LineChart, Line
-} from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
 const STATUS_COLORS = {
   'New': '#3B82F6', 'Hot': '#EF4444', 'Warm': '#F59E0B',
   'Cold': '#06B6D4', 'Won': '#10B981', 'Lost': '#6B7280',
 }
 
-const STAGE_COLORS = {
-  'New': '#3B82F6', 'Contacted': '#F59E0B', 'Qualified': '#8B5CF6',
-  'Quote Sent': '#F97316', 'Won': '#10B981', 'Lost': '#EF4444',
-}
-
-export default function Reports() {
+export default function Reports({ orgId }) {
   const [leads, setLeads] = useState([])
   const [deals, setDeals] = useState([])
   const [contacts, setContacts] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchAll()
-  }, [])
+    if (orgId) fetchAll()
+  }, [orgId])
 
   const fetchAll = async () => {
     const [leadsRes, dealsRes, contactsRes] = await Promise.all([
-      supabase.from('leads').select('*'),
-      supabase.from('deals').select('*'),
-      supabase.from('contacts').select('*'),
+      supabase.from('leads').select('*').eq('org_id', orgId),
+      supabase.from('deals').select('*').eq('org_id', orgId),
+      supabase.from('contacts').select('*').eq('org_id', orgId),
     ])
     setLeads(leadsRes.data || [])
     setDeals(dealsRes.data || [])
@@ -39,39 +30,22 @@ export default function Reports() {
     setLoading(false)
   }
 
-  // Leads by Status
   const leadsByStatus = Object.entries(
-    leads.reduce((acc, l) => {
-      acc[l.status] = (acc[l.status] || 0) + 1
-      return acc
-    }, {})
+    leads.reduce((acc, l) => { acc[l.status] = (acc[l.status] || 0) + 1; return acc }, {})
   ).map(([name, value]) => ({ name, value }))
 
-  // Leads by Source
   const leadsBySource = Object.entries(
-    leads.reduce((acc, l) => {
-      if (l.source) acc[l.source] = (acc[l.source] || 0) + 1
-      return acc
-    }, {})
+    leads.reduce((acc, l) => { if (l.source) acc[l.source] = (acc[l.source] || 0) + 1; return acc }, {})
   ).map(([name, count]) => ({ name, count }))
 
-  // Deals by Stage
   const dealsByStage = Object.entries(
-    deals.reduce((acc, d) => {
-      acc[d.stage] = (acc[d.stage] || 0) + 1
-      return acc
-    }, {})
+    deals.reduce((acc, d) => { acc[d.stage] = (acc[d.stage] || 0) + 1; return acc }, {})
   ).map(([name, count]) => ({ name, count }))
 
-  // Revenue by Stage
   const revenueByStage = Object.entries(
-    deals.reduce((acc, d) => {
-      acc[d.stage] = (acc[d.stage] || 0) + (d.value || 0)
-      return acc
-    }, {})
+    deals.reduce((acc, d) => { acc[d.stage] = (acc[d.stage] || 0) + (d.value || 0); return acc }, {})
   ).map(([name, value]) => ({ name, value }))
 
-  // Summary Stats
   const totalRevenue = deals.reduce((sum, d) => sum + (d.value || 0), 0)
   const wonRevenue = deals.filter(d => d.stage === 'Won').reduce((sum, d) => sum + (d.value || 0), 0)
   const wonDeals = deals.filter(d => d.stage === 'Won').length
@@ -90,11 +64,9 @@ export default function Reports() {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
       <Sidebar active="Reports" />
-
       <div className="flex-1 p-6">
         <h2 className="text-2xl font-bold text-gray-700 mb-6">Reports & Analytics</h2>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-4 rounded-xl shadow text-center">
             <p className="text-gray-500 text-xs">Total Leads</p>
@@ -114,34 +86,23 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Row 1 Charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Leads by Status */}
           <div className="bg-white p-6 rounded-xl shadow">
             <h3 className="text-lg font-bold text-gray-700 mb-4">Leads by Status</h3>
-            {leadsByStatus.length === 0 ? (
-              <p className="text-gray-400 text-center py-12">Koi data nahi</p>
-            ) : (
+            {leadsByStatus.length === 0 ? <p className="text-gray-400 text-center py-12">Koi data nahi</p> : (
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie data={leadsByStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={(e) => e.name + ': ' + e.value}>
-                    {leadsByStatus.map((entry, i) => (
-                      <Cell key={i} fill={STATUS_COLORS[entry.name] || '#888'} />
-                    ))}
+                    {leadsByStatus.map((entry, i) => <Cell key={i} fill={STATUS_COLORS[entry.name] || '#888'} />)}
                   </Pie>
-                  <Tooltip />
-                  <Legend />
+                  <Tooltip /><Legend />
                 </PieChart>
               </ResponsiveContainer>
             )}
           </div>
-
-          {/* Leads by Source */}
           <div className="bg-white p-6 rounded-xl shadow">
             <h3 className="text-lg font-bold text-gray-700 mb-4">Leads by Source</h3>
-            {leadsBySource.length === 0 ? (
-              <p className="text-gray-400 text-center py-12">Koi data nahi</p>
-            ) : (
+            {leadsBySource.length === 0 ? <p className="text-gray-400 text-center py-12">Koi data nahi</p> : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={leadsBySource}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -155,14 +116,10 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Row 2 Charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Deals by Stage */}
           <div className="bg-white p-6 rounded-xl shadow">
             <h3 className="text-lg font-bold text-gray-700 mb-4">Deals by Stage</h3>
-            {dealsByStage.length === 0 ? (
-              <p className="text-gray-400 text-center py-12">Koi data nahi</p>
-            ) : (
+            {dealsByStage.length === 0 ? <p className="text-gray-400 text-center py-12">Koi data nahi</p> : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={dealsByStage}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -174,13 +131,9 @@ export default function Reports() {
               </ResponsiveContainer>
             )}
           </div>
-
-          {/* Revenue by Stage */}
           <div className="bg-white p-6 rounded-xl shadow">
             <h3 className="text-lg font-bold text-gray-700 mb-4">Revenue by Stage (₹)</h3>
-            {revenueByStage.length === 0 ? (
-              <p className="text-gray-400 text-center py-12">Koi data nahi</p>
-            ) : (
+            {revenueByStage.length === 0 ? <p className="text-gray-400 text-center py-12">Koi data nahi</p> : (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={revenueByStage}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -194,7 +147,6 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* Summary Table */}
         <div className="bg-white p-6 rounded-xl shadow">
           <h3 className="text-lg font-bold text-gray-700 mb-4">Summary</h3>
           <table className="w-full text-sm">
