@@ -10,6 +10,8 @@ import Deals from './pages/Deals'
 import Activities from './pages/Activities'
 import Tasks from './pages/Tasks'
 import Reports from './pages/Reports'
+import Quotes from './pages/Quotes'
+import QuoteBuilder from './pages/QuoteBuilder'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -65,6 +67,8 @@ function App() {
         <Route path="/activities" element={session ? <Activities orgId={orgId} /> : <Navigate to="/" />} />
         <Route path="/tasks" element={session ? <Tasks orgId={orgId} /> : <Navigate to="/" />} />
         <Route path="/reports" element={session ? <Reports orgId={orgId} /> : <Navigate to="/" />} />
+        <Route path="/quotes" element={session ? <Quotes orgId={orgId} /> : <Navigate to="/" />} />
+        <Route path="/quotes/new" element={session ? <QuoteBuilder orgId={orgId} /> : <Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
   )
