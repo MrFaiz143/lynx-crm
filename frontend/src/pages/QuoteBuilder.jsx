@@ -16,6 +16,7 @@ export default function QuoteBuilder({ orgId }) {
   const [items, setItems] = useState([{ description: '', qty: 1, price: 0 }])
   const [status, setStatus] = useState('Draft')
   const [saving, setSaving] = useState(false)
+  const [sending, setSending] = useState(false)
   const [quoteId, setQuoteId] = useState(null)
 
   useEffect(() => {
@@ -102,7 +103,7 @@ export default function QuoteBuilder({ orgId }) {
     }
   }
 
-  const handleDownloadPDF = () => {
+  const buildPDF = () => {
     const doc = new jsPDF()
 
     doc.setFontSize(20)
@@ -141,7 +142,86 @@ export default function QuoteBuilder({ orgId }) {
     doc.setTextColor(13, 27, 42)
     doc.text(`Total: Rs.${total.toLocaleString('en-IN')}`, 140, finalY + 14)
 
+    return doc
+  }
+
+  const handleDownloadPDF = () => {
+    const doc = buildPDF()
     doc.save(`${quoteNumber}.pdf`)
+  }
+
+  const handleSendQuote = async () => {
+    if (!clientName || !clientEmail) {
+      alert('Client name aur email zaroori hai')
+      return
+    }
+    if (items.some((i) => !i.description)) {
+      alert('Sab line items mein description bharo')
+      return
+    }
+
+    setSending(true)
+    try {
+      const payload = {
+        org_id: orgId,
+        quote_number: quoteNumber,
+        client_name: clientName,
+        client_email: clientEmail,
+        items,
+        subtotal,
+        tax,
+        total,
+        status: 'Sent',
+        valid_until: validUntil || null,
+      }
+
+      let currentQuoteId = quoteId
+      if (currentQuoteId) {
+        await supabase.from('quotes').update(payload).eq('id', currentQuoteId)
+      } else {
+        const result = await supabase.from('quotes').insert(payload).select().single()
+        currentQuoteId = result.data?.id
+        setQuoteId(currentQuoteId)
+      }
+      setStatus('Sent')
+
+      const doc = buildPDF()
+      const pdfBase64 = doc.output('datauristring').split(',')[1]
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData?.session?.access_token
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-quote-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            clientEmail,
+            clientName,
+            quoteNumber,
+            total,
+            pdfBase64,
+          }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Email bhejne mein error aayi')
+      }
+
+      alert('Quote email successfully bhej di gayi!')
+      window.location.href = '/quotes'
+    } catch (err) {
+      alert('Quote bhejne mein error: ' + err.message)
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -268,13 +348,21 @@ export default function QuoteBuilder({ orgId }) {
             <p className="text-xl font-bold text-blue-900">Total: ₹{total.toLocaleString('en-IN')}</p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button
               onClick={handleSave}
               disabled={saving}
               className="bg-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-900 transition disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Quote'}
+            </button>
+            <button
+              onClick={handleSendQuote}
+              disabled={sending}
+              type="button"
+              className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50"
+            >
+              {sending ? 'Sending...' : '📧 Send Quote'}
             </button>
             <button
               onClick={handleDownloadPDF}
