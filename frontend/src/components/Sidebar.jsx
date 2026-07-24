@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient'
+import InstallPWA from './InstallPWA'
 
 export default function Sidebar({ active }) {
   const [open, setOpen] = useState(false)
@@ -54,7 +55,8 @@ export default function Sidebar({ active }) {
             })}
           </nav>
 
-          <div className="absolute bottom-0 w-64 p-4 border-t border-blue-700">
+          <div className="absolute bottom-0 w-64 p-4 border-t border-blue-700 space-y-1">
+            <InstallPWA />
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-blue-200 hover:bg-blue-800 transition"
