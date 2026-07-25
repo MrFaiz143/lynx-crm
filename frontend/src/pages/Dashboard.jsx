@@ -8,11 +8,16 @@ const STATUS_COLORS = {
   'Cold': '#06B6D4', 'Won': '#10B981', 'Lost': '#6B7280',
 }
 
+const TAG_COLORS = {
+  'Hot': '#EF4444', 'Warm': '#F59E0B', 'Cold': '#06B6D4',
+}
+
 export default function Dashboard({ orgId }) {
   const [user, setUser] = useState(null)
   const [totalLeads, setTotalLeads] = useState(0)
   const [hotLeads, setHotLeads] = useState(0)
   const [leadsByStatus, setLeadsByStatus] = useState([])
+  const [leadsByTag, setLeadsByTag] = useState([])
   const [dealsByStage, setDealsByStage] = useState([])
   const [totalDealValue, setTotalDealValue] = useState(0)
   const [wonValue, setWonValue] = useState(0)
@@ -28,10 +33,18 @@ export default function Dashboard({ orgId }) {
 
     if (leads) {
       setTotalLeads(leads.length)
-      setHotLeads(leads.filter(l => l.status === 'Hot').length)
+      setHotLeads(leads.filter(l => l.lead_tag === 'Hot').length)
+
       const statusCount = {}
       leads.forEach(l => { statusCount[l.status] = (statusCount[l.status] || 0) + 1 })
       setLeadsByStatus(Object.keys(statusCount).map(key => ({ name: key, value: statusCount[key] })))
+
+      const tagCount = { Hot: 0, Warm: 0, Cold: 0 }
+      leads.forEach(l => {
+        const tag = l.lead_tag || 'Cold'
+        tagCount[tag] = (tagCount[tag] || 0) + 1
+      })
+      setLeadsByTag(Object.keys(tagCount).map(key => ({ name: key, value: tagCount[key] })))
     }
 
     if (deals) {
@@ -58,7 +71,7 @@ export default function Dashboard({ orgId }) {
               <p className="text-4xl font-bold text-blue-800 mt-2">{totalLeads}</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow text-center">
-              <p className="text-gray-500 text-sm">Hot Leads</p>
+              <p className="text-gray-500 text-sm">🔥 Hot Leads</p>
               <p className="text-4xl font-bold text-red-500 mt-2">{hotLeads}</p>
             </div>
             <div className="bg-white p-6 rounded-xl shadow text-center">
@@ -71,7 +84,7 @@ export default function Dashboard({ orgId }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white p-6 rounded-xl shadow">
               <h3 className="text-lg font-bold text-gray-700 mb-4">Leads by Status</h3>
               {leadsByStatus.length === 0 ? (
@@ -90,6 +103,26 @@ export default function Dashboard({ orgId }) {
                 </ResponsiveContainer>
               )}
             </div>
+
+            <div className="bg-white p-6 rounded-xl shadow">
+              <h3 className="text-lg font-bold text-gray-700 mb-4">Leads by AI Score 🎯</h3>
+              {leadsByTag.length === 0 || totalLeads === 0 ? (
+                <p className="text-gray-400 text-center py-12">Koi data nahi hai</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={leadsByTag} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={(e) => e.name + ': ' + e.value}>
+                      {leadsByTag.map((entry, index) => (
+                        <Cell key={index} fill={TAG_COLORS[entry.name] || '#888'} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
             <div className="bg-white p-6 rounded-xl shadow">
               <h3 className="text-lg font-bold text-gray-700 mb-4">Deals by Stage</h3>
               {dealsByStage.length === 0 ? (

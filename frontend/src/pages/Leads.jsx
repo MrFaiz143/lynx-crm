@@ -71,6 +71,7 @@ export default function Leads({ orgId }) {
     const exportData = leads.map(l => ({
       Name: l.name, Phone: l.phone, Email: l.email,
       Source: l.source, Status: l.status, Notes: l.notes,
+      'AI Score': l.lead_score, 'AI Tag': l.lead_tag,
       'Created At': l.created_at
     }))
     const ws = XLSX.utils.json_to_sheet(exportData)
@@ -114,6 +115,21 @@ export default function Leads({ orgId }) {
     const matchStatus = filterStatus === '' || lead.status === filterStatus
     return matchSearch && matchStatus
   })
+
+  const tagBadge = (tag) => {
+    const styles = {
+      Hot: 'bg-red-100 text-red-600',
+      Warm: 'bg-yellow-100 text-yellow-600',
+      Cold: 'bg-cyan-100 text-cyan-700',
+    }
+    const emojis = { Hot: '🔥', Warm: '⭐', Cold: '❄️' }
+    const t = tag || 'Cold'
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${styles[t] || styles.Cold}`}>
+        {emojis[t] || '❄️'} {t}
+      </span>
+    )
+  }
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
@@ -220,13 +236,14 @@ export default function Leads({ orgId }) {
                 <th className="px-4 py-3 text-left">Phone</th>
                 <th className="px-4 py-3 text-left">Source</th>
                 <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">AI Score 🎯</th>
                 <th className="px-4 py-3 text-left">Notes</th>
                 <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredLeads.length === 0 ? (
-                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-400">Koi lead nahi — Add Lead se add karo!</td></tr>
+                <tr><td colSpan="7" className="px-4 py-8 text-center text-gray-400">Koi lead nahi — Add Lead se add karo!</td></tr>
               ) : (
                 filteredLeads.map((lead, i) => (
                   <tr key={lead.id} className={i % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
@@ -237,6 +254,12 @@ export default function Leads({ orgId }) {
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${lead.status === 'Hot' ? 'bg-red-100 text-red-600' : lead.status === 'Warm' ? 'bg-yellow-100 text-yellow-600' : lead.status === 'Won' ? 'bg-green-100 text-green-600' : lead.status === 'Lost' ? 'bg-gray-100 text-gray-600' : 'bg-blue-100 text-blue-600'}`}>
                         {lead.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {tagBadge(lead.lead_tag)}
+                        <span className="text-xs text-gray-400">{lead.lead_score ?? 0}</span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500">{lead.notes}</td>
                     <td className="px-4 py-3">
