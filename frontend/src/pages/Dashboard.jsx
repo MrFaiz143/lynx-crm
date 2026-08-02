@@ -21,10 +21,33 @@ export default function Dashboard({ orgId }) {
   const [dealsByStage, setDealsByStage] = useState([])
   const [totalDealValue, setTotalDealValue] = useState(0)
   const [wonValue, setWonValue] = useState(0)
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
     if (orgId) fetchStats()
+  }, [orgId])
+
+  useEffect(() => {
+    if (!orgId) return
+
+    const channel = supabase
+      .channel('leads-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'leads', filter: `org_id=eq.${orgId}` },
+        (payload) => {
+          const lead = payload.new
+          setToast(lead)
+          fetchStats()
+          setTimeout(() => setToast(null), 6000)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [orgId])
 
   const fetchStats = async () => {
@@ -59,6 +82,26 @@ export default function Dashboard({ orgId }) {
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
       <Sidebar active="Dashboard" />
+
+      {toast && (
+        <div className="fixed top-5 right-5 z-50 w-80 bg-white rounded-xl shadow-2xl border-l-4 border-green-500 p-4 animate-[slideIn_0.3s_ease-out]">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl animate-bounce">🎉</div>
+            <div className="flex-1">
+              <p className="font-bold text-gray-800 text-sm">New Lead Added!</p>
+              <p className="text-gray-600 text-sm mt-1">{toast.name}</p>
+              <p className="text-gray-400 text-xs mt-0.5">{toast.phone} {toast.source ? `• ${toast.source}` : ''}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="text-gray-400 hover:text-gray-700 text-sm"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1">
         <div className="hidden md:flex bg-white shadow px-6 py-4 justify-between items-center">
           <h2 className="text-xl font-bold text-gray-700">Dashboard</h2>

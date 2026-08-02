@@ -27,7 +27,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center text-blue-800 mb-2">Lynx Soft.</h1>
+        <h1 className="text-3xl font-bold text-center text-blue-800 mb-2">NextGen Technologies</h1>
         <p className="text-center text-gray-500 mb-6">CRM & Sales System</p>
 
         {error && (
