@@ -24,7 +24,7 @@ export default function Sidebar({ active }) {
   return (
     <>
       <div className="md:hidden bg-blue-800 text-white px-4 py-3 flex justify-between items-center">
-        <h1 className="text-lg font-bold">Lynx Soft. CRM</h1>
+        <h1 className="text-lg font-bold">NextGen Technologies CRM</h1>
         <button onClick={() => setOpen(!open)} className="text-2xl">
           {open ? 'X' : 'Menu'}
         </button>
@@ -36,7 +36,7 @@ export default function Sidebar({ active }) {
           (open ? "translate-x-0" : "-translate-x-full") + " md:translate-x-0"
         }>
           <div className="p-6 border-b border-blue-700 hidden md:block">
-            <h1 className="text-xl font-bold">Lynx Soft.</h1>
+            <h1 className="text-xl font-bold">NextGen Technologies.</h1>
             <p className="text-blue-300 text-sm">CRM & Sales System</p>
           </div>
 
